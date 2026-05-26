@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ReportForm } from "../report-form";
 import type { ReportFormValues } from "@/lib/report-schema";
+import { getSiteUrl } from "@/lib/site-url";
 
 export const dynamic = "force-dynamic";
 
@@ -79,7 +80,7 @@ export default async function NewReportPage({
         reportId={null}
         clients={clientOptions}
         defaultValues={initial}
-        siteUrl={process.env.NEXT_PUBLIC_SITE_URL ?? ""}
+        siteUrl={getSiteUrl()}
       />
     </div>
   );

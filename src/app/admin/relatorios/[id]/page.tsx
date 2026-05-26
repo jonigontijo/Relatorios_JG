@@ -6,6 +6,7 @@ import { WhatsAppSection } from "./whatsapp-section";
 import { DEFAULT_TEMPLATE } from "@/lib/whatsapp";
 import { loadAppSettings } from "@/lib/whatsapp-server";
 import { formatDateRange } from "@/lib/utils";
+import { getSiteUrl } from "@/lib/site-url";
 
 export const dynamic = "force-dynamic";
 
@@ -52,8 +53,7 @@ export default async function EditReportPage({
   ]);
 
   const clientRecord = (clients ?? []).find((c) => c.id === report.client_id);
-  const siteUrlForLink =
-    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "") ?? "";
+  const siteUrlForLink = getSiteUrl();
   const publicUrl = `${siteUrlForLink}/r/${report.public_slug}?t=${report.public_token}`;
   const clientLabel =
     clientRecord?.company || clientRecord?.name || report.client_id;
@@ -130,7 +130,7 @@ export default async function EditReportPage({
               : null,
         }))}
         defaultValues={values}
-        siteUrl={process.env.NEXT_PUBLIC_SITE_URL ?? ""}
+        siteUrl={siteUrlForLink}
       />
 
       <WhatsAppSection
