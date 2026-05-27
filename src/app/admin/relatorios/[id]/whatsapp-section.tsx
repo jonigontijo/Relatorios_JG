@@ -243,16 +243,16 @@ export function WhatsAppSection({
           <div className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="wa_phone">Número do destinatário</Label>
+                <Label htmlFor="wa_phone">Número ou grupo do destinatário</Label>
                 <Input
                   id="wa_phone"
-                  inputMode="numeric"
-                  placeholder="5537998357244"
+                  placeholder="5537998357244 ou 120363393907049523@g.us"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                 />
                 <p className="text-[11px] text-muted-foreground">
-                  DDI + DDD + número, apenas dígitos.
+                  Número (DDI + DDD + número) ou ID de grupo terminando em
+                  <code> @g.us</code>.
                 </p>
               </div>
               <div className="space-y-1.5">

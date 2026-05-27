@@ -97,13 +97,13 @@ export function NewClientForm() {
         <Label htmlFor="whatsapp">WhatsApp do cliente</Label>
         <Input
           id="whatsapp"
-          placeholder="Ex.: 5537998357244"
-          inputMode="numeric"
+          placeholder="Ex.: 5537998357244 ou 120363393907049523@g.us"
           {...register("whatsapp")}
         />
         <p className="text-xs text-muted-foreground">
-          Use o formato internacional sem &quot;+&quot; ou espaços (DDI + DDD +
-          número). Esse número receberá os relatórios pelo WhatsApp.
+          Número direto no formato internacional (DDI + DDD + número) ou o ID
+          de grupo do WhatsApp terminando em <code>@g.us</code>. É para esse
+          destino que os relatórios serão enviados.
         </p>
         {errors.whatsapp && (
           <p className="text-xs text-destructive">

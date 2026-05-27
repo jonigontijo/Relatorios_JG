@@ -11,7 +11,16 @@ export type AppSettings = {
 export const DEFAULT_TEMPLATE =
   "Olá, {{cliente}}! Seu relatório de {{periodo}} já está disponível: {{link}}";
 
-export const sanitizePhone = (raw: string) => raw.replace(/\D+/g, "");
+const WHATSAPP_JID_RE = /@(g\.us|s\.whatsapp\.net|broadcast)$/i;
+
+export const isWhatsAppGroupJid = (raw: string) =>
+  /@g\.us$/i.test(raw.trim());
+
+export const sanitizePhone = (raw: string) => {
+  const trimmed = raw.trim();
+  if (WHATSAPP_JID_RE.test(trimmed)) return trimmed;
+  return trimmed.replace(/\D+/g, "");
+};
 
 export function renderTemplate(
   template: string,
@@ -84,10 +93,15 @@ export const dispatchSchema = z
     phone: z
       .string()
       .trim()
-      .transform((v) => v.replace(/\D+/g, ""))
-      .refine((v) => v.length >= 10 && v.length <= 15, {
-        message: "Número de WhatsApp inválido",
-      }),
+      .transform((v) => {
+        if (WHATSAPP_JID_RE.test(v)) return v;
+        return v.replace(/\D+/g, "");
+      })
+      .refine(
+        (v) =>
+          WHATSAPP_JID_RE.test(v) || (v.length >= 10 && v.length <= 15),
+        { message: "Informe um número (DDI+DDD) ou um ID de grupo (...@g.us)" },
+      ),
     message: z.string().trim().min(1, "Mensagem não pode estar vazia").max(4000),
     mode: z.enum(["now", "schedule"]),
     scheduledAt: z.string().optional().nullable(),

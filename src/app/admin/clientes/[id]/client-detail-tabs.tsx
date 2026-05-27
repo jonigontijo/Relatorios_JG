@@ -247,13 +247,12 @@ function InfoForm({ client }: { client: ClientShape }) {
           <Label htmlFor="whatsapp">WhatsApp do cliente</Label>
           <Input
             id="whatsapp"
-            inputMode="numeric"
-            placeholder="Ex.: 5537998357244"
+            placeholder="Ex.: 5537998357244 ou 120363393907049523@g.us"
             {...register("whatsapp")}
           />
           <p className="text-[11px] text-muted-foreground">
-            DDI + DDD + número, somente dígitos. Esse é o número que receberá
-            o relatório por WhatsApp.
+            Aceita número direto (DDI + DDD + número) ou ID de grupo do
+            WhatsApp terminando em <code>@g.us</code>.
           </p>
           {errors.whatsapp && (
             <p className="text-xs text-destructive">{errors.whatsapp.message}</p>

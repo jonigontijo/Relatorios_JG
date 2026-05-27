@@ -7,13 +7,25 @@ const optionalUrl = z
   .optional()
   .or(z.literal(""));
 
+const GROUP_JID_RE = /@(g\.us|s\.whatsapp\.net|broadcast)$/i;
+
 const optionalWhatsapp = z
   .string()
   .trim()
-  .transform((v) => v.replace(/\D+/g, ""))
-  .refine((v) => v === "" || (v.length >= 10 && v.length <= 15), {
-    message: "Número inválido. Use apenas dígitos com DDI+DDD (ex.: 5537998357244)",
+  .transform((v) => {
+    if (GROUP_JID_RE.test(v)) return v;
+    return v.replace(/\D+/g, "");
   })
+  .refine(
+    (v) =>
+      v === "" ||
+      GROUP_JID_RE.test(v) ||
+      (v.length >= 10 && v.length <= 15),
+    {
+      message:
+        "Use um número (DDI+DDD, ex.: 5537998357244) ou um ID de grupo (ex.: 120363393907049523@g.us)",
+    },
+  )
   .optional()
   .or(z.literal(""));
 
