@@ -117,22 +117,22 @@ supabase/migracoes (pg_cron)              # job 'auto_weekly_reports_friday_1745
 alter database postgres set app.cron_secret = '<mesma string do CRON_SECRET do Vercel>';
 ```
 
-A URL do app já está embutida no helper `public.trigger_weekly_reports_cron()` (`https://jg-relatorios.vercel.app/api/cron/weekly-reports`). Se mudar o domínio, edite a função.
+A URL do app já está embutida no helper `public.trigger_weekly_reports_cron()` (`https://relatorios-jg.vercel.app/api/cron/weekly-reports`). Se mudar o domínio, edite a função.
 
 ### Testar manualmente
 
 ```bash
 # Dry-run (não publica, não envia) — mostra exatamente o que seria feito
-curl "https://jg-relatorios.vercel.app/api/cron/weekly-reports?dryRun=1&secret=$CRON_SECRET"
+curl "https://relatorios-jg.vercel.app/api/cron/weekly-reports?dryRun=1&secret=$CRON_SECRET"
 
 # Forçar disparo real agora (qualquer dia/hora):
-curl -X POST "https://jg-relatorios.vercel.app/api/cron/weekly-reports?secret=$CRON_SECRET"
+curl -X POST "https://relatorios-jg.vercel.app/api/cron/weekly-reports?secret=$CRON_SECRET"
 
 # Disparar só para clientes específicos:
-curl "https://jg-relatorios.vercel.app/api/cron/weekly-reports?secret=$CRON_SECRET&only=c4,c18"
+curl "https://relatorios-jg.vercel.app/api/cron/weekly-reports?secret=$CRON_SECRET&only=c4,c18"
 
 # Forçar período customizado:
-curl "https://jg-relatorios.vercel.app/api/cron/weekly-reports?secret=$CRON_SECRET&periodStart=2026-05-23&periodEnd=2026-05-29"
+curl "https://relatorios-jg.vercel.app/api/cron/weekly-reports?secret=$CRON_SECRET&periodStart=2026-05-23&periodEnd=2026-05-29"
 ```
 
 ### Histórico no Supabase
