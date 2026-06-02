@@ -11,6 +11,66 @@ export type AppSettings = {
 export const DEFAULT_TEMPLATE =
   "Olá, {{cliente}}! Seu relatório de {{periodo}} já está disponível: {{link}}";
 
+// Variações sorteadas aleatoriamente quando o gestor abre o envio do relatório.
+// Use os placeholders: {{cliente}}, {{periodo}}, {{desde}}, {{ate}}, {{link}}.
+export const MESSAGE_VARIANTS: string[] = [
+  `Boa tarde pessoal! Uma excelente sexta-feira a todos! ✨
+Segue relatório semanal do Meta de {{desde}} até {{ate}}.
+Neste link vocês têm acesso aos resultados do Meta da semana, basta clicar para acessar o gráfico e respectivos dados. Se necessário trocar ou adicionar mais informações sobre o desempenho, pode nos comunicar - o relatório é totalmente personalizado ✅
+Qualquer dúvida basta nos perguntar. Obrigado e conte conosco
+
+{{link}}`,
+  `Boa tarde pessoal! Uma excelente sexta-feira a todos! ✨
+Segue relatório semanal do Meta (Facebook/Instagram) de {{desde}} até {{ate}}.
+Através deste link vocês podem verificar os resultados do Meta da semana, com gráficos completos e informações detalhadas. Se precisarem de ajustes ou quiserem adicionar mais detalhes sobre o desempenho, basta nos comunicar. O relatório é totalmente personalizável ✅
+Qualquer dúvida estamos à disposição. Obrigado e conte conosco
+
+{{link}}`,
+  `Boa tarde pessoal! Uma excelente sexta-feira a todos! ✨
+Segue relatório semanal com dados do Meta de {{desde}} até {{ate}}.
+No link abaixo vocês encontrarão os resultados completos do Meta da semana, incluindo gráficos e análises detalhadas das campanhas. Caso queiram alguma modificação ou informação adicional, é só nos avisar. Nosso relatório é totalmente adaptável ✅
+Qualquer dúvida, estamos prontos para ajudar. Obrigado e conte conosco
+
+{{link}}`,
+  `Boa tarde pessoal! Uma excelente sexta-feira a todos! ✨
+Segue relatório semanal Meta de {{desde}} até {{ate}}.
+Disponibilizamos o link com todos os resultados e métricas do Meta da semana, contendo gráficos e informações precisas. Se desejarem alguma alteração ou precisarem de mais detalhes sobre o desempenho, fiquem à vontade para nos comunicar. Nosso relatório é flexível e personalizado ✅
+Qualquer dúvida, estamos à disposição. Obrigado e conte conosco
+
+{{link}}`,
+  `Boa tarde pessoal! Uma excelente sexta-feira a todos! ✨
+Segue relatório semanal de desempenho no Meta de {{desde}} até {{ate}}.
+Acessem o link com os resultados completos do Meta da semana, incluindo gráficos e análises detalhadas das métricas. Se precisarem de ajustes ou quiserem adicionar mais informações, só nos comunicar. Nosso relatório é totalmente personalizável ✅
+Qualquer dúvida basta nos perguntar. Obrigado e conte conosco
+
+{{link}}`,
+];
+
+export function pickRandomMessageTemplate(
+  exclude?: string,
+): string {
+  if (MESSAGE_VARIANTS.length === 0) return DEFAULT_TEMPLATE;
+  if (MESSAGE_VARIANTS.length === 1) return MESSAGE_VARIANTS[0];
+  let pick = MESSAGE_VARIANTS[Math.floor(Math.random() * MESSAGE_VARIANTS.length)];
+  // Evita repetir a mesma variação consecutivamente quando possível
+  let safety = 0;
+  while (exclude && pick === exclude && safety < 8) {
+    pick = MESSAGE_VARIANTS[Math.floor(Math.random() * MESSAGE_VARIANTS.length)];
+    safety += 1;
+  }
+  return pick;
+}
+
+export function formatBrDate(value: string | null | undefined): string {
+  if (!value) return "";
+  const datePart = value.split("T")[0];
+  const parts = datePart.split("-");
+  if (parts.length !== 3) return value;
+  const [y, m, d] = parts;
+  if (!y || !m || !d) return value;
+  return `${d}/${m}/${y}`;
+}
+
 const WHATSAPP_JID_RE = /@(g\.us|s\.whatsapp\.net|broadcast)$/i;
 
 export const isWhatsAppGroupJid = (raw: string) =>
@@ -22,14 +82,24 @@ export const sanitizePhone = (raw: string) => {
   return trimmed.replace(/\D+/g, "");
 };
 
+export type RenderTemplateVars = {
+  cliente: string;
+  periodo: string;
+  link: string;
+  desde?: string;
+  ate?: string;
+};
+
 export function renderTemplate(
   template: string,
-  vars: { cliente: string; periodo: string; link: string },
+  vars: RenderTemplateVars,
 ): string {
   return template
     .replaceAll("{{cliente}}", vars.cliente)
     .replaceAll("{{periodo}}", vars.periodo)
-    .replaceAll("{{link}}", vars.link);
+    .replaceAll("{{link}}", vars.link)
+    .replaceAll("{{desde}}", vars.desde ?? "")
+    .replaceAll("{{ate}}", vars.ate ?? "");
 }
 
 export type SendTextResult = {
