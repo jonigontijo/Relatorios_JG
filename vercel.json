@@ -2,10 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "crons": [
     {
-      "path": "/api/cron/whatsapp-dispatch",
-      "schedule": "* * * * *"
-    },
-    {
       "path": "/api/cron/weekly-reports",
       "schedule": "45 20 * * 5"
     }
