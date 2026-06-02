@@ -141,6 +141,32 @@ curl "https://relatorios-jg.vercel.app/api/cron/weekly-reports?secret=$CRON_SECR
 - `cron.job_run_details` — histórico de execuções do pg_cron (status, retorno, erros).
 - `report_dispatches` — todos os disparos enfileirados/enviados ficam aqui (visível também em `/admin/relatorios/[id]`).
 
+## Limpeza automática de relatórios antigos
+
+Todo dia à **00:00 BRT (= 03:00 UTC)** o pg_cron executa `public.purge_old_reports(interval '1 month', false)`, que apaga `weekly_reports` cujo `period_end` é **mais antigo que 1 mês**. As tabelas `report_campaigns`, `report_tasks` e `report_dispatches` caem junto por `ON DELETE CASCADE`.
+
+Cada execução é registrada em `public.report_purge_log` (mantém até 90 dias de histórico):
+
+```sql
+-- ver as últimas 10 limpezas
+select ran_at, cutoff_date, deleted_reports_count, deleted_dispatches_count, dry_run
+from public.report_purge_log order by ran_at desc limit 10;
+
+-- dry-run manual (não apaga nada, só simula)
+select * from public.purge_old_reports(interval '1 month', true);
+
+-- limpeza manual com janela customizada (ex: apagar > 3 meses)
+select * from public.purge_old_reports(interval '3 months', false);
+
+-- desligar o job de limpeza
+select cron.unschedule('purge_old_reports_daily_00brt');
+```
+
+| Job | Schedule (UTC) | Em BRT | O que faz |
+| --- | --- | --- | --- |
+| `auto_weekly_reports_friday_1745_brt` | `45 20 * * 5` | sexta 17:45 | publica + envia relatórios |
+| `purge_old_reports_daily_00brt` | `0 3 * * *` | todos os dias 00:00 | apaga relatórios > 1 mês |
+
 ## Próximos passos sugeridos
 
 - Integrar autenticação Supabase (login com `profiles.username`) — hoje o RLS já está pronto, falta o middleware de auth no `/admin`.
