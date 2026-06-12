@@ -29,6 +29,7 @@ export function NewClientForm() {
       name: "",
       company: "",
       meta_ads_account_id: "",
+      google_ads_account_id: "",
       whatsapp: "",
     },
   });
@@ -89,6 +90,27 @@ export function NewClientForm() {
         {errors.meta_ads_account_id && (
           <p className="text-xs text-destructive">
             {errors.meta_ads_account_id.message}
+          </p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="google_ads_account_id">
+          ID da conta de anúncio Google Ads
+        </Label>
+        <Input
+          id="google_ads_account_id"
+          placeholder="Ex.: 123-456-7890"
+          inputMode="numeric"
+          {...register("google_ads_account_id")}
+        />
+        <p className="text-xs text-muted-foreground">
+          ID do cliente no Google Ads (canto superior da conta). Use para marcar
+          o cliente como tráfego Google.
+        </p>
+        {errors.google_ads_account_id && (
+          <p className="text-xs text-destructive">
+            {errors.google_ads_account_id.message}
           </p>
         )}
       </div>

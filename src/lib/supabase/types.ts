@@ -351,6 +351,7 @@ export type Database = {
           created_at: string
           data_studio_urls: Json
           days_overdue: number | null
+          google_ads_account_id: string | null
           hidden_in_reports: boolean
           id: string
           is_barter: boolean | null
@@ -390,6 +391,7 @@ export type Database = {
           created_at?: string
           data_studio_urls?: Json
           days_overdue?: number | null
+          google_ads_account_id?: string | null
           hidden_in_reports?: boolean
           id: string
           is_barter?: boolean | null
@@ -429,6 +431,7 @@ export type Database = {
           created_at?: string
           data_studio_urls?: Json
           days_overdue?: number | null
+          google_ads_account_id?: string | null
           hidden_in_reports?: boolean
           id?: string
           is_barter?: boolean | null
@@ -1496,6 +1499,13 @@ export type Database = {
           report_id: string
         }[]
       }
+      get_report_clients_google: {
+        Args: never
+        Returns: {
+          google_ads_account_id: string
+          id: string
+        }[]
+      }
       list_report_clients: {
         Args: never
         Returns: {
@@ -1529,6 +1539,10 @@ export type Database = {
       }
       mark_dispatch_sent: {
         Args: { p_id: string; p_response?: Json }
+        Returns: undefined
+      }
+      set_client_google_ads_id: {
+        Args: { p_google_ads_account_id?: string; p_id: string }
         Returns: undefined
       }
       show_limit: { Args: never; Returns: number }

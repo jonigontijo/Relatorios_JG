@@ -35,9 +35,12 @@ type ClientShape = {
   name: string;
   company: string;
   meta_ads_account_id: string;
+  google_ads_account_id: string;
   whatsapp: string;
   reports_enabled: boolean;
   data_studio_url_default: string;
+  data_studio_url_meta: string;
+  data_studio_url_google: string;
   data_studio_url_mensagem: string;
   data_studio_url_ecommerce: string;
   data_studio_url_formulario: string;
@@ -138,8 +141,11 @@ function InfoForm({ client }: { client: ClientShape }) {
       name: client.name,
       company: client.company,
       meta_ads_account_id: client.meta_ads_account_id,
+      google_ads_account_id: client.google_ads_account_id,
       whatsapp: client.whatsapp,
       data_studio_url_default: client.data_studio_url_default,
+      data_studio_url_meta: client.data_studio_url_meta,
+      data_studio_url_google: client.data_studio_url_google,
       data_studio_url_mensagem: client.data_studio_url_mensagem,
       data_studio_url_ecommerce: client.data_studio_url_ecommerce,
       data_studio_url_formulario: client.data_studio_url_formulario,
@@ -244,6 +250,25 @@ function InfoForm({ client }: { client: ClientShape }) {
           )}
         </div>
         <div className="space-y-2">
+          <Label htmlFor="google_ads_account_id">
+            ID da conta de anúncio Google Ads
+          </Label>
+          <Input
+            id="google_ads_account_id"
+            inputMode="numeric"
+            placeholder="Ex.: 123-456-7890"
+            {...register("google_ads_account_id")}
+          />
+          <p className="text-[11px] text-muted-foreground">
+            Preenchido = cliente aparece na aba <strong>Google</strong>.
+          </p>
+          {errors.google_ads_account_id && (
+            <p className="text-xs text-destructive">
+              {errors.google_ads_account_id.message}
+            </p>
+          )}
+        </div>
+        <div className="space-y-2">
           <Label htmlFor="whatsapp">WhatsApp do cliente</Label>
           <Input
             id="whatsapp"
@@ -263,16 +288,31 @@ function InfoForm({ client }: { client: ClientShape }) {
       <div className="space-y-3">
         <div>
           <h3 className="text-sm font-semibold">
-            Link do Google Data Studio / Looker Studio
+            Links de dashboard (Looker Studio / Data Studio)
           </h3>
           <p className="text-xs text-muted-foreground">
-            Esse link é usado automaticamente quando um novo relatório é criado
-            para o cliente.
+            Cole o link do dashboard de cada plataforma. Eles aparecem na
+            listagem de clientes nas abas Meta e Google.
           </p>
         </div>
 
+        <div className="grid gap-4 md:grid-cols-2">
+          <UrlField
+            label="Dashboard Meta"
+            id="data_studio_url_meta"
+            register={register("data_studio_url_meta")}
+            error={errors.data_studio_url_meta?.message}
+          />
+          <UrlField
+            label="Dashboard Google"
+            id="data_studio_url_google"
+            register={register("data_studio_url_google")}
+            error={errors.data_studio_url_google?.message}
+          />
+        </div>
+
         <UrlField
-          label="Link padrão"
+          label="Link padrão (usado no envio automático de sexta)"
           id="data_studio_url_default"
           register={register("data_studio_url_default")}
           error={errors.data_studio_url_default?.message}

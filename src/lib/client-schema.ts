@@ -38,11 +38,19 @@ export const clientCreateSchema = z.object({
     .regex(/^\d+$/u, "Apenas números (ID do Gerenciador de Anúncios)")
     .optional()
     .or(z.literal("")),
+  google_ads_account_id: z
+    .string()
+    .trim()
+    .regex(/^[\d-]+$/u, "Apenas números e hífens (ID da conta Google Ads)")
+    .optional()
+    .or(z.literal("")),
   whatsapp: optionalWhatsapp,
 });
 
 export const clientEditSchema = clientCreateSchema.extend({
   data_studio_url_default: optionalUrl,
+  data_studio_url_meta: optionalUrl,
+  data_studio_url_google: optionalUrl,
   data_studio_url_mensagem: optionalUrl,
   data_studio_url_ecommerce: optionalUrl,
   data_studio_url_formulario: optionalUrl,

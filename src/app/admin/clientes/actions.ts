@@ -27,6 +27,7 @@ export async function createClientAction(
   }
   const supabase = createSupabaseServerClient();
   const adsId = (parsed.data.meta_ads_account_id ?? "").trim();
+  const googleAdsId = (parsed.data.google_ads_account_id ?? "").trim();
 
   const whatsapp = (parsed.data.whatsapp ?? "").trim();
 
@@ -41,6 +42,14 @@ export async function createClientAction(
     return { ok: false, error: error?.message ?? "Falha ao criar cliente" };
   }
 
+  if (googleAdsId) {
+    const { error: gErr } = await supabase.rpc("set_client_google_ads_id", {
+      p_id: id,
+      p_google_ads_account_id: googleAdsId,
+    });
+    if (gErr) return { ok: false, error: gErr.message };
+  }
+
   revalidatePath("/admin/relatorios");
   revalidatePath("/admin/clientes");
   revalidatePath("/admin/relatorios/novo");
@@ -50,6 +59,8 @@ export async function createClientAction(
 function buildUrlsJson(v: ClientEditValues): Record<string, string> {
   const out: Record<string, string> = {};
   if (v.data_studio_url_default) out.default = v.data_studio_url_default;
+  if (v.data_studio_url_meta) out.meta = v.data_studio_url_meta;
+  if (v.data_studio_url_google) out.google = v.data_studio_url_google;
   if (v.data_studio_url_mensagem) out.mensagem = v.data_studio_url_mensagem;
   if (v.data_studio_url_ecommerce) out.ecommerce = v.data_studio_url_ecommerce;
   if (v.data_studio_url_formulario) out.formulario = v.data_studio_url_formulario;
@@ -74,6 +85,7 @@ export async function updateClientAction(
   const supabase = createSupabaseServerClient();
   const urls = buildUrlsJson(parsed.data);
   const adsId = (parsed.data.meta_ads_account_id ?? "").trim();
+  const googleAdsId = (parsed.data.google_ads_account_id ?? "").trim();
   const whatsapp = (parsed.data.whatsapp ?? "").trim();
 
   const { error } = await supabase.rpc("update_report_client", {
@@ -85,6 +97,12 @@ export async function updateClientAction(
     p_whatsapp: whatsapp || undefined,
   });
   if (error) return { ok: false, error: error.message };
+
+  const { error: gErr } = await supabase.rpc("set_client_google_ads_id", {
+    p_id: clientId,
+    p_google_ads_account_id: googleAdsId,
+  });
+  if (gErr) return { ok: false, error: gErr.message };
 
   revalidatePath("/admin/clientes");
   revalidatePath(`/admin/clientes/${clientId}`);

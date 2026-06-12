@@ -14,21 +14,29 @@ export default async function ClienteDetailPage({
 }) {
   const supabase = createSupabaseServerClient();
 
-  const [{ data: allClients, error: cErr }, { data: reports, error: rErr }] =
-    await Promise.all([
-      supabase.rpc("list_report_clients"),
-      supabase
-        .from("weekly_reports")
-        .select(
-          "id, period_start, period_end, status, report_category, title, public_slug, public_token, published_at, updated_at, created_at",
-        )
-        .eq("client_id", params.id)
-        .order("period_start", { ascending: false }),
-    ]);
+  const [
+    { data: allClients, error: cErr },
+    { data: googleRows },
+    { data: reports, error: rErr },
+  ] = await Promise.all([
+    supabase.rpc("list_report_clients"),
+    supabase.rpc("get_report_clients_google"),
+    supabase
+      .from("weekly_reports")
+      .select(
+        "id, period_start, period_end, status, report_category, title, public_slug, public_token, published_at, updated_at, created_at",
+      )
+      .eq("client_id", params.id)
+      .order("period_start", { ascending: false }),
+  ]);
 
   if (cErr) throw new Error(cErr.message);
   const client = (allClients ?? []).find((c) => c.id === params.id);
   if (!client) notFound();
+
+  const googleAdsId =
+    (googleRows ?? []).find((g) => g.id === params.id)?.google_ads_account_id ??
+    "";
 
   const urls =
     client.data_studio_urls &&
@@ -42,9 +50,12 @@ export default async function ClienteDetailPage({
     name: client.name ?? "",
     company: client.company ?? "",
     meta_ads_account_id: client.meta_ads_account_id ?? "",
+    google_ads_account_id: googleAdsId,
     whatsapp: client.whatsapp ?? "",
     reports_enabled: client.reports_enabled ?? true,
     data_studio_url_default: urls.default ?? "",
+    data_studio_url_meta: urls.meta ?? "",
+    data_studio_url_google: urls.google ?? "",
     data_studio_url_mensagem: urls.mensagem ?? "",
     data_studio_url_ecommerce: urls.ecommerce ?? "",
     data_studio_url_formulario: urls.formulario ?? "",
