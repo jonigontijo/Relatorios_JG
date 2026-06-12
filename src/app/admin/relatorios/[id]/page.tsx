@@ -139,6 +139,8 @@ export default async function EditReportPage({
         clientLabel={clientLabel}
         clientWhatsapp={clientWhatsapp}
         periodLabel={periodLabel}
+        periodStart={report.period_start}
+        periodEnd={report.period_end}
         publicUrl={publicUrl}
         defaultTemplate={
           settings.whatsapp_default_template || DEFAULT_TEMPLATE

@@ -9,6 +9,7 @@ import {
   MessageCircle,
   RefreshCw,
   Send,
+  Shuffle,
   Trash2,
   XCircle,
 } from "lucide-react";
@@ -27,7 +28,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { renderTemplate } from "@/lib/whatsapp";
+import {
+  formatBrDate,
+  pickRandomMessageTemplate,
+  renderTemplate,
+} from "@/lib/whatsapp";
 import {
   cancelDispatchAction,
   retryDispatchAction,
@@ -52,6 +57,8 @@ type Props = {
   clientLabel: string;
   clientWhatsapp: string;
   periodLabel: string;
+  periodStart: string;
+  periodEnd: string;
   publicUrl: string;
   defaultTemplate: string;
   dispatches: DispatchRow[];
@@ -72,25 +79,41 @@ export function WhatsAppSection({
   clientLabel,
   clientWhatsapp,
   periodLabel,
+  periodStart,
+  periodEnd,
   publicUrl,
   defaultTemplate,
   dispatches,
   configured,
 }: Props) {
-  const initialMessage = useMemo(
-    () =>
-      renderTemplate(defaultTemplate, {
-        cliente: clientLabel,
-        periodo: periodLabel,
-        link: publicUrl,
-      }),
-    [defaultTemplate, clientLabel, periodLabel, publicUrl],
+  const templateVars = useMemo(
+    () => ({
+      cliente: clientLabel,
+      periodo: periodLabel,
+      desde: formatBrDate(periodStart),
+      ate: formatBrDate(periodEnd),
+      link: publicUrl,
+    }),
+    [clientLabel, periodLabel, periodStart, periodEnd, publicUrl],
   );
+
+  const renderWith = (template: string) => renderTemplate(template, templateVars);
 
   const [open, setOpen] = useState(false);
   const [initialMode, setInitialMode] = useState<"now" | "schedule">("now");
   const [phone, setPhone] = useState(clientWhatsapp || "");
-  const [message, setMessage] = useState(initialMessage);
+  const [currentTemplate, setCurrentTemplate] = useState<string>(() =>
+    pickRandomMessageTemplate(),
+  );
+  const [message, setMessage] = useState<string>(() =>
+    renderTemplate(pickRandomMessageTemplate(), {
+      cliente: clientLabel,
+      periodo: periodLabel,
+      desde: formatBrDate(periodStart),
+      ate: formatBrDate(periodEnd),
+      link: publicUrl,
+    }),
+  );
   const [mode, setMode] = useState<"now" | "schedule">("now");
   const [scheduledAt, setScheduledAt] = useState(() => localDatetimeNowPlus(30));
   const [isPending, startTransition] = useTransition();
@@ -100,12 +123,26 @@ export function WhatsAppSection({
 
   useEffect(() => {
     if (open) {
+      const tpl = pickRandomMessageTemplate();
+      setCurrentTemplate(tpl);
       setPhone(clientWhatsapp || "");
-      setMessage(initialMessage);
+      setMessage(renderTemplate(tpl, templateVars));
       setMode(initialMode);
       setScheduledAt(localDatetimeNowPlus(30));
     }
-  }, [open, clientWhatsapp, initialMessage, initialMode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  const shuffleMessage = () => {
+    const tpl = pickRandomMessageTemplate(currentTemplate);
+    setCurrentTemplate(tpl);
+    setMessage(renderTemplate(tpl, templateVars));
+  };
+
+  const useSavedTemplate = () => {
+    setCurrentTemplate(defaultTemplate);
+    setMessage(renderWith(defaultTemplate));
+  };
 
   const publishedReady = status === "published";
 
@@ -287,16 +324,45 @@ export function WhatsAppSection({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="wa_message">Mensagem</Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label htmlFor="wa_message">Mensagem</Label>
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={shuffleMessage}
+                    title="Sortear outra variação de mensagem"
+                  >
+                    <Shuffle className="h-3.5 w-3.5" />
+                    Sortear nova mensagem
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={useSavedTemplate}
+                    title="Usar o template salvo nas configurações"
+                  >
+                    Template salvo
+                  </Button>
+                </div>
+              </div>
               <Textarea
                 id="wa_message"
-                rows={6}
+                rows={9}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
               />
               <p className="text-[11px] text-muted-foreground">
-                Edite à vontade. O link público vai pré-preenchido pelo
-                template.
+                A cada abertura uma das variações é sorteada automaticamente.
+                Use <strong>Sortear nova mensagem</strong> para pegar outra,
+                ou edite manualmente. Variáveis disponíveis:{" "}
+                <code className="rounded bg-muted px-1">{`{{desde}}`}</code>,{" "}
+                <code className="rounded bg-muted px-1">{`{{ate}}`}</code>,{" "}
+                <code className="rounded bg-muted px-1">{`{{periodo}}`}</code>,{" "}
+                <code className="rounded bg-muted px-1">{`{{cliente}}`}</code>,{" "}
+                <code className="rounded bg-muted px-1">{`{{link}}`}</code>.
               </p>
             </div>
 
