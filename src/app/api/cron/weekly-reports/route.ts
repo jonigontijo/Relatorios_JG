@@ -29,9 +29,13 @@ async function handle(request: Request) {
   const periodStart = url.searchParams.get("periodStart") ?? undefined;
   const periodEnd = url.searchParams.get("periodEnd") ?? undefined;
   const only = url.searchParams.get("only") ?? undefined;
+  // Padrao = so gera e enfileira (envio fica para o cron whatsapp-dispatch das
+  // 18h). Para gerar E enviar na mesma chamada (teste manual), use ?send=1.
+  const enqueueOnly = url.searchParams.get("send") !== "1";
 
   const result = await runWeeklyAutoDispatch({
     dryRun,
+    enqueueOnly,
     periodStart,
     periodEnd,
     siteUrl: getSiteUrl(),

@@ -5,6 +5,8 @@ import { loadAppSettings } from "@/lib/whatsapp-server";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+// Drena a fila de disparos (ate 100) em uma execucao; limite do plano Hobby.
+export const maxDuration = 60;
 
 function isAuthorized(request: Request) {
   const secret = process.env.CRON_SECRET;
@@ -75,7 +77,7 @@ export async function GET(request: Request) {
   }
   const url = new URL(request.url);
   const limit = Math.min(
-    Math.max(parseInt(url.searchParams.get("limit") || "20", 10) || 20, 1),
+    Math.max(parseInt(url.searchParams.get("limit") || "100", 10) || 100, 1),
     100,
   );
   const result = await processDue(limit);

@@ -14,6 +14,10 @@ export type AutoWeeklyOptions = {
   periodEnd?: string;
   siteUrl: string;
   onlyClientIds?: string[];
+  // Quando true: gera/reaproveita os relatorios e enfileira os disparos, mas
+  // NAO envia o WhatsApp. O envio fica para o cron whatsapp-dispatch (drena a
+  // fila depois). Usado para separar geracao (17h) de envio (18h).
+  enqueueOnly?: boolean;
 };
 
 export type AutoWeeklyClientEntry = {
@@ -73,6 +77,7 @@ export async function runWeeklyAutoDispatch(
   const startedAt = new Date().toISOString();
   const supabase = createSupabaseServiceClient();
   const dryRun = Boolean(options.dryRun);
+  const enqueueOnly = Boolean(options.enqueueOnly);
   const period =
     options.periodStart && options.periodEnd
       ? { start: options.periodStart, end: options.periodEnd }
@@ -274,6 +279,12 @@ export async function runWeeklyAutoDispatch(
         continue;
       }
       entry.dispatchId = dispatchId;
+
+      // Modo geracao (17h): so enfileira; quem envia e o cron das 18h.
+      if (enqueueOnly) {
+        entries.push(entry);
+        continue;
+      }
 
       if (!canSend) {
         await supabase.rpc("mark_dispatch_failed", {
