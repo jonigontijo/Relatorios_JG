@@ -37,6 +37,11 @@ type Props = {
 
 type Platform = "todos" | "meta" | "google";
 
+// Meta = tem ID Meta Ads OU não tem nenhum ID (cliente sem ID entra em Meta
+// por padrão). Fica de fora da aba Meta apenas quem é exclusivamente Google.
+const isMetaClient = (c: ClientRow) =>
+  !!c.meta_ads_account_id || !c.google_ads_account_id;
+
 export function ClientsTable({ initialClients }: Props) {
   const router = useRouter();
   const [rows, setRows] = useState<ClientRow[]>(initialClients);
@@ -45,10 +50,7 @@ export function ClientsTable({ initialClients }: Props) {
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
-  const metaCount = useMemo(
-    () => rows.filter((c) => !!c.meta_ads_account_id).length,
-    [rows],
-  );
+  const metaCount = useMemo(() => rows.filter(isMetaClient).length, [rows]);
   const googleCount = useMemo(
     () => rows.filter((c) => !!c.google_ads_account_id).length,
     [rows],
@@ -57,7 +59,7 @@ export function ClientsTable({ initialClients }: Props) {
   const filtered = useMemo(() => {
     const byPlatform = rows.filter((c) =>
       platform === "meta"
-        ? !!c.meta_ads_account_id
+        ? isMetaClient(c)
         : platform === "google"
           ? !!c.google_ads_account_id
           : true,
