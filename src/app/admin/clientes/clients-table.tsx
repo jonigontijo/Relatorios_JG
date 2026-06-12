@@ -35,13 +35,13 @@ type Props = {
   initialClients: ClientRow[];
 };
 
-type Platform = "meta" | "google";
+type Platform = "todos" | "meta" | "google";
 
 export function ClientsTable({ initialClients }: Props) {
   const router = useRouter();
   const [rows, setRows] = useState<ClientRow[]>(initialClients);
   const [query, setQuery] = useState("");
-  const [platform, setPlatform] = useState<Platform>("meta");
+  const [platform, setPlatform] = useState<Platform>("todos");
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
@@ -58,7 +58,9 @@ export function ClientsTable({ initialClients }: Props) {
     const byPlatform = rows.filter((c) =>
       platform === "meta"
         ? !!c.meta_ads_account_id
-        : !!c.google_ads_account_id,
+        : platform === "google"
+          ? !!c.google_ads_account_id
+          : true,
     );
     const q = query.trim().toLowerCase();
     if (!q) return byPlatform;
@@ -122,12 +124,21 @@ export function ClientsTable({ initialClients }: Props) {
   };
 
   const isMeta = platform === "meta";
-  const idLabel = isMeta ? "ID Meta Ads" : "ID Google Ads";
+  const isGoogle = platform === "google";
+  const isAll = platform === "todos";
+  const tabTotal = isMeta ? metaCount : isGoogle ? googleCount : rows.length;
   const dashLabel = isMeta ? "Dashboard Meta" : "Dashboard Google";
 
   return (
     <div>
       <div className="flex items-center gap-1 border-b px-3 pt-2">
+        <PlatformTab
+          active={isAll}
+          onClick={() => setPlatform("todos")}
+          count={rows.length}
+        >
+          Todos
+        </PlatformTab>
         <PlatformTab
           active={isMeta}
           onClick={() => setPlatform("meta")}
@@ -136,7 +147,7 @@ export function ClientsTable({ initialClients }: Props) {
           Meta
         </PlatformTab>
         <PlatformTab
-          active={!isMeta}
+          active={isGoogle}
           onClick={() => setPlatform("google")}
           count={googleCount}
         >
@@ -155,7 +166,7 @@ export function ClientsTable({ initialClients }: Props) {
           />
         </div>
         <div className="text-xs text-muted-foreground">
-          {filtered.length} de {isMeta ? metaCount : googleCount}
+          {filtered.length} de {tabTotal}
         </div>
       </div>
 
@@ -163,8 +174,19 @@ export function ClientsTable({ initialClients }: Props) {
         <thead className="border-b bg-muted/40 text-left text-xs uppercase tracking-wider text-muted-foreground">
           <tr>
             <th className="px-4 py-3 font-medium">Cliente</th>
-            <th className="px-4 py-3 font-medium">{dashLabel}</th>
-            <th className="px-4 py-3 font-medium">{idLabel}</th>
+            {isAll ? (
+              <>
+                <th className="px-4 py-3 font-medium">ID Meta Ads</th>
+                <th className="px-4 py-3 font-medium">ID Google Ads</th>
+              </>
+            ) : (
+              <>
+                <th className="px-4 py-3 font-medium">{dashLabel}</th>
+                <th className="px-4 py-3 font-medium">
+                  {isMeta ? "ID Meta Ads" : "ID Google Ads"}
+                </th>
+              </>
+            )}
             <th className="px-4 py-3 font-medium">Status</th>
             <th className="px-4 py-3 text-right font-medium">Ações</th>
           </tr>
@@ -197,25 +219,40 @@ export function ClientsTable({ initialClients }: Props) {
                     </div>
                   )}
                 </td>
-                <td className="px-4 py-3">
-                  {dashUrl ? (
-                    <a
-                      href={dashUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-xs font-medium text-jg-700 hover:underline"
-                    >
-                      <ExternalLink className="h-3.5 w-3.5" /> Abrir
-                    </a>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">
-                      Sem relatório
-                    </span>
-                  )}
-                </td>
-                <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                  {accountId ?? "—"}
-                </td>
+
+                {isAll ? (
+                  <>
+                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                      {c.meta_ads_account_id ?? "—"}
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                      {c.google_ads_account_id ?? "—"}
+                    </td>
+                  </>
+                ) : (
+                  <>
+                    <td className="px-4 py-3">
+                      {dashUrl ? (
+                        <a
+                          href={dashUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs font-medium text-jg-700 hover:underline"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" /> Abrir
+                        </a>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">
+                          Sem relatório
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                      {accountId ?? "—"}
+                    </td>
+                  </>
+                )}
+
                 <td className="px-4 py-3">
                   <span
                     className={
@@ -277,7 +314,7 @@ export function ClientsTable({ initialClients }: Props) {
                 colSpan={5}
                 className="px-4 py-12 text-center text-sm text-muted-foreground"
               >
-                Nenhum cliente {isMeta ? "Meta" : "Google"} encontrado.
+                Nenhum cliente encontrado.
               </td>
             </tr>
           )}

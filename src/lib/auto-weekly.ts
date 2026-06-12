@@ -195,10 +195,9 @@ export async function runWeeklyAutoDispatch(
           !Array.isArray(c.data_studio_urls)
             ? (c.data_studio_urls as Record<string, string>)
             : {};
-        const dashboardUrl =
-          typeof urls.default === "string" && urls.default.trim().length > 0
-            ? urls.default.trim()
-            : null;
+        const pickUrl = (v: unknown) =>
+          typeof v === "string" && v.trim().length > 0 ? v.trim() : null;
+        const dashboardUrl = pickUrl(urls.meta) ?? pickUrl(urls.default);
 
         if (dryRun) {
           report = {

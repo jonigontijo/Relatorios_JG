@@ -58,8 +58,9 @@ export async function createClientAction(
 
 function buildUrlsJson(v: ClientEditValues): Record<string, string> {
   const out: Record<string, string> = {};
-  if (v.data_studio_url_default) out.default = v.data_studio_url_default;
-  if (v.data_studio_url_meta) out.meta = v.data_studio_url_meta;
+  // "default" foi descontinuado: o link antigo (sempre Meta) migra para "meta".
+  const metaUrl = v.data_studio_url_meta || v.data_studio_url_default;
+  if (metaUrl) out.meta = metaUrl;
   if (v.data_studio_url_google) out.google = v.data_studio_url_google;
   if (v.data_studio_url_mensagem) out.mensagem = v.data_studio_url_mensagem;
   if (v.data_studio_url_ecommerce) out.ecommerce = v.data_studio_url_ecommerce;

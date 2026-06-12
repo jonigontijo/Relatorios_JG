@@ -311,13 +311,7 @@ function InfoForm({ client }: { client: ClientShape }) {
           />
         </div>
 
-        <UrlField
-          label="Link padrão (usado no envio automático de sexta)"
-          id="data_studio_url_default"
-          register={register("data_studio_url_default")}
-          error={errors.data_studio_url_default?.message}
-        />
-
+        <input type="hidden" {...register("data_studio_url_default")} />
         <input type="hidden" {...register("data_studio_url_mensagem")} />
         <input type="hidden" {...register("data_studio_url_ecommerce")} />
         <input type="hidden" {...register("data_studio_url_formulario")} />
