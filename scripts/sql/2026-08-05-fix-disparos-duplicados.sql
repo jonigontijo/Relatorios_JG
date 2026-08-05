@@ -10,8 +10,15 @@
 --   [x] PASSO 2 - job 'auto_weekly_reports_friday_1745_brt' desagendado.
 --                 Sobraram so purge_old_reports_daily_00brt e
 --                 sm_sheets_autosync_every_min (esse ultimo e do JG Interno).
---   [~] PASSO 3 - indice unico parcial: SQL pronto no BLOCO FINAL
---   [~] PASSO 4 - envio: teste + fallback pg_cron no BLOCO FINAL
+--   [x] PASSO 3 - indice report_dispatches_unico_pendente criado.
+--   [x] PASSO 4 - envio resolvido. app.cron_secret nao batia com o CRON_SECRET
+--                 da Vercel (o endpoint devolvia 401), entao em vez de caçar o
+--                 segredo a funcao trigger_whatsapp_dispatch_cron() foi CLONADA
+--                 de trigger_weekly_reports_cron() - que ja autenticava ha
+--                 semanas - trocando apenas a URL. Teste manual: HTTP 200 com
+--                 {"processed":0,"sent":0,"failed":0,"cancelled":0,"results":[]}.
+--                 Job 'whatsapp_dispatch_fallback_friday_1630_brt' agendado em
+--                 '30 19 * * 5' (jobid 6), uma hora depois do Vercel Cron.
 --   [x] PASSO 5 - get_public_report nao depende mais de reports_enabled.
 --                 Revalidados os 303 links: 303 vivos, 0 mortos (antes eram
 --                 23 mortos). Token errado / slug inexistente continuam
