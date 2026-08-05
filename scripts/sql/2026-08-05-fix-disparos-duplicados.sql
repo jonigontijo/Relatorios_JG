@@ -10,8 +10,8 @@
 --   [x] PASSO 2 - job 'auto_weekly_reports_friday_1745_brt' desagendado.
 --                 Sobraram so purge_old_reports_daily_00brt e
 --                 sm_sheets_autosync_every_min (esse ultimo e do JG Interno).
---   [ ] PASSO 3 - indice unico parcial (pendente)
---   [ ] PASSO 4 - confirmar que o cron de ENVIO roda (pendente)
+--   [~] PASSO 3 - indice unico parcial: SQL pronto no BLOCO FINAL
+--   [~] PASSO 4 - envio: teste + fallback pg_cron no BLOCO FINAL
 --   [x] PASSO 5 - get_public_report nao depende mais de reports_enabled.
 --                 Revalidados os 303 links: 303 vivos, 0 mortos (antes eram
 --                 23 mortos). Token errado / slug inexistente continuam
@@ -116,8 +116,80 @@ create unique index if not exists report_dispatches_unico_pendente
   where status = 'pending';
 
 
+-- =====================================================================
+-- BLOCO FINAL - cole tudo de uma vez no SQL Editor
+-- =====================================================================
+-- Cobre o PASSO 3 (indice) e o PASSO 4 (envio). Pre-requisitos ja
+-- confirmados em 05/08/2026:
+--   - fila zerada (0 pendentes), entao rodar o envio agora nao dispara nada
+--   - CRON_SECRET configurado na Vercel (endpoint responde 401 sem header)
+--   - app.cron_secret ja configurado no banco (o antigo job de pg_cron
+--     autenticava com ele e funcionou por semanas)
+--   - codigo com a trava de 48h ja em producao (commit b99b615)
+
+-- (A) Impede dois disparos pendentes do mesmo relatorio, no banco.
+create unique index if not exists report_dispatches_unico_pendente
+  on public.report_dispatches (report_id, channel)
+  where status = 'pending';
+
+-- (B) Teste de ponta a ponta AGORA. Com a fila vazia isso e um no-op seguro:
+--     nenhuma mensagem sai. Serve para provar que o segredo bate e que o
+--     codigo novo esta no ar.
+select net.http_post(
+  url := 'https://relatorios-jg.vercel.app/api/cron/whatsapp-dispatch',
+  headers := jsonb_build_object(
+    'Content-Type', 'application/json',
+    'Authorization', 'Bearer ' || coalesce(current_setting('app.cron_secret', true), '')
+  ),
+  body := '{}'::jsonb
+) as request_id;
+
+-- (C) Rode ~5 segundos depois para ver a resposta:
+select status_code, content
+from net._http_response
+order by created desc
+limit 1;
+--
+-- ESPERADO: status_code 200 e um JSON contendo os campos "sent", "failed" e
+-- "cancelled" (ex.: {"processed":0,"sent":0,"failed":0,"cancelled":0,...}).
+--   - Veio 401           -> app.cron_secret nao bate com o CRON_SECRET da Vercel.
+--                           Corrija com:
+--                           alter database postgres set app.cron_secret = '<valor da Vercel>';
+--                           e rode (B) e (C) de novo.
+--   - Faltam os campos   -> o deploy novo ainda nao propagou; espere e repita.
+--   - status_code null   -> a resposta ainda nao chegou; rode (C) de novo.
+
+-- (D) So depois que (C) devolver 200, agende o fallback de envio.
+--     Sexta 19:30 UTC = 16:30 BRT, UMA HORA DEPOIS do Vercel Cron das 18:30.
+--     Se o Vercel Cron funcionar, a fila ja estara vazia e este job vira um
+--     no-op; se nao funcionar, ele salva o envio da semana. Como esta uma hora
+--     depois, nao ha sobreposicao nem risco de enviar duas vezes.
+select cron.schedule(
+  'whatsapp_dispatch_fallback_friday_1630_brt',
+  '30 19 * * 5',
+  $job$
+  select net.http_post(
+    url := 'https://relatorios-jg.vercel.app/api/cron/whatsapp-dispatch',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer ' || coalesce(current_setting('app.cron_secret', true), '')
+    ),
+    body := '{}'::jsonb
+  );
+  $job$
+);
+
+-- (E) Confere o resultado final dos agendamentos:
+select jobid, jobname, schedule, active from cron.job order by jobname;
+-- ESPERADO: purge_old_reports_daily_00brt, sm_sheets_autosync_every_min e
+-- whatsapp_dispatch_fallback_friday_1630_brt.
+-- NAO pode existir nenhum job chamando /api/cron/weekly-reports - esse e o
+-- gatilho da geracao e ele e do Vercel Cron. Dois gatilhos na mesma etapa foi
+-- exatamente a causa da duplicacao.
+
+
 -- ---------------------------------------------------------------------
--- PASSO 4 - Garantir que o ENVIO realmente acontece
+-- PASSO 4 - Garantir que o ENVIO realmente acontece (referencia)
 -- ---------------------------------------------------------------------
 -- Confira primeiro em Vercel -> Projeto -> Settings -> Cron Jobs se
 -- /api/cron/whatsapp-dispatch aparece listado e qual foi a ultima execucao.
