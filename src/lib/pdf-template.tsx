@@ -390,6 +390,9 @@ export function ReportPdfDocument({ data }: { data: PublicReportData }) {
   const { report, client, campaigns, agency_tasks, client_tasks } = data;
   const totalInvest =
     Number(report.meta_ads_investment) + Number(report.google_ads_investment);
+  // Mesma regra da pagina publica: investimento zerado = nao preenchido pelo
+  // gestor, entao nao aparece. Sem KPI nenhum, a faixa inteira sai.
+  const hasOverview = totalInvest > 0 || report.overview_metrics.length > 0;
   const periodLabel = formatDateRange(report.period_start, report.period_end);
   const typeLabel =
     report.report_type === "weekly"
@@ -467,38 +470,42 @@ export function ReportPdfDocument({ data }: { data: PublicReportData }) {
           ) : (
             <>
               {/* KPIs */}
-              <View style={styles.kpiRow}>
-                <View style={[styles.kpiCard, styles.kpiCardHighlight]}>
-                  <Text style={[styles.kpiLabel, styles.kpiLabelOnDark]}>
-                    Investimento total
-                  </Text>
-                  <Text style={[styles.kpiValue, styles.kpiValueOnDark]}>
-                    {formatBRL(totalInvest)}
-                  </Text>
+              {hasOverview && (
+                <View style={styles.kpiRow}>
+                  {totalInvest > 0 && (
+                    <View style={[styles.kpiCard, styles.kpiCardHighlight]}>
+                      <Text style={[styles.kpiLabel, styles.kpiLabelOnDark]}>
+                        Investimento total
+                      </Text>
+                      <Text style={[styles.kpiValue, styles.kpiValueOnDark]}>
+                        {formatBRL(totalInvest)}
+                      </Text>
+                    </View>
+                  )}
+                  {Number(report.meta_ads_investment) > 0 && (
+                    <View style={styles.kpiCard}>
+                      <Text style={styles.kpiLabel}>Meta Ads</Text>
+                      <Text style={styles.kpiValue}>
+                        {formatBRL(report.meta_ads_investment)}
+                      </Text>
+                    </View>
+                  )}
+                  {Number(report.google_ads_investment) > 0 && (
+                    <View style={styles.kpiCard}>
+                      <Text style={styles.kpiLabel}>Google Ads</Text>
+                      <Text style={styles.kpiValue}>
+                        {formatBRL(report.google_ads_investment)}
+                      </Text>
+                    </View>
+                  )}
+                  {report.overview_metrics.map((m, i) => (
+                    <View key={i} style={styles.kpiCard}>
+                      <Text style={styles.kpiLabel}>{m.label}</Text>
+                      <Text style={styles.kpiValue}>{m.value}</Text>
+                    </View>
+                  ))}
                 </View>
-                {Number(report.meta_ads_investment) > 0 && (
-                  <View style={styles.kpiCard}>
-                    <Text style={styles.kpiLabel}>Meta Ads</Text>
-                    <Text style={styles.kpiValue}>
-                      {formatBRL(report.meta_ads_investment)}
-                    </Text>
-                  </View>
-                )}
-                {Number(report.google_ads_investment) > 0 && (
-                  <View style={styles.kpiCard}>
-                    <Text style={styles.kpiLabel}>Google Ads</Text>
-                    <Text style={styles.kpiValue}>
-                      {formatBRL(report.google_ads_investment)}
-                    </Text>
-                  </View>
-                )}
-                {report.overview_metrics.map((m, i) => (
-                  <View key={i} style={styles.kpiCard}>
-                    <Text style={styles.kpiLabel}>{m.label}</Text>
-                    <Text style={styles.kpiValue}>{m.value}</Text>
-                  </View>
-                ))}
-              </View>
+              )}
 
               {/* ANÁLISE */}
               {report.manager_analysis && (

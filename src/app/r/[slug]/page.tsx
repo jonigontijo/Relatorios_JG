@@ -34,6 +34,8 @@ export default async function PublicReportPage({
   const { report, client, campaigns, agency_tasks, client_tasks } = data;
   const totalInvestment =
     Number(report.meta_ads_investment) + Number(report.google_ads_investment);
+  // Ha algo para mostrar na visao geral? Investimento zerado nao conta.
+  const hasOverview = totalInvestment > 0 || report.overview_metrics.length > 0;
   const embedUrl = toEmbedUrl(report.data_studio_url);
 
   return (
@@ -148,24 +150,35 @@ export default async function PublicReportPage({
         ) : (
           <>
         {/* VISÃO GERAL */}
-        <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <KpiCard label="Investimento total" value={formatBRL(totalInvestment)} highlight />
-          {Number(report.meta_ads_investment) > 0 && (
-            <KpiCard
-              label="Meta Ads"
-              value={formatBRL(report.meta_ads_investment)}
-            />
-          )}
-          {Number(report.google_ads_investment) > 0 && (
-            <KpiCard
-              label="Google Ads"
-              value={formatBRL(report.google_ads_investment)}
-            />
-          )}
-          {report.overview_metrics.map((m, i) => (
-            <KpiCard key={i} label={m.label} value={m.value} />
-          ))}
-        </section>
+        {/* Investimento zerado = gestor nao preencheu. Nesse caso o card nao
+            aparece, mesma regra dos outros campos opcionais. E se nao sobrar
+            nenhum KPI, a secao inteira sai para nao deixar espaco vazio. */}
+        {hasOverview && (
+          <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {totalInvestment > 0 && (
+              <KpiCard
+                label="Investimento total"
+                value={formatBRL(totalInvestment)}
+                highlight
+              />
+            )}
+            {Number(report.meta_ads_investment) > 0 && (
+              <KpiCard
+                label="Meta Ads"
+                value={formatBRL(report.meta_ads_investment)}
+              />
+            )}
+            {Number(report.google_ads_investment) > 0 && (
+              <KpiCard
+                label="Google Ads"
+                value={formatBRL(report.google_ads_investment)}
+              />
+            )}
+            {report.overview_metrics.map((m, i) => (
+              <KpiCard key={i} label={m.label} value={m.value} />
+            ))}
+          </section>
+        )}
 
         {/* ANÁLISE DO GESTOR */}
         {report.manager_analysis && (
