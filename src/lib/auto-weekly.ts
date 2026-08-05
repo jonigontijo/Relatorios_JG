@@ -24,7 +24,12 @@ export type AutoWeeklyClientEntry = {
   clientId: string;
   clientLabel: string;
   whatsapp: string | null;
-  action: "skipped_no_whatsapp" | "skipped_disabled" | "reused" | "created";
+  action:
+    | "skipped_no_whatsapp"
+    | "skipped_disabled"
+    | "reused"
+    | "created"
+    | "already_queued";
   reportId?: string;
   publicUrl?: string;
   dispatchId?: string;
@@ -45,6 +50,8 @@ export type AutoWeeklyResult = {
   sent: number;
   skippedNoWhatsapp: number;
   skippedDisabled: number;
+  /** Relatorio ja tinha disparo na fila (outro gatilho ja rodou nesta semana). */
+  alreadyQueued: number;
   failed: number;
   entries: AutoWeeklyClientEntry[];
   error?: string;
@@ -89,6 +96,7 @@ export async function runWeeklyAutoDispatch(
   let sent = 0;
   let skippedNoWhatsapp = 0;
   let skippedDisabled = 0;
+  let alreadyQueued = 0;
   let failed = 0;
 
   const { data: clients, error: clientsErr } = await supabase.rpc(
@@ -107,6 +115,7 @@ export async function runWeeklyAutoDispatch(
       sent: 0,
       skippedNoWhatsapp: 0,
       skippedDisabled: 0,
+      alreadyQueued: 0,
       failed: 1,
       entries: [],
       error: clientsErr?.message ?? "Falha ao listar clientes",
@@ -172,10 +181,10 @@ export async function runWeeklyAutoDispatch(
         .limit(1)
         .maybeSingle();
 
+      // `finally` no fim do try empilha a entry; nao empilhar aqui tambem.
       if (existingErr) {
         entry.error = existingErr.message;
         failed += 1;
-        entries.push(entry);
         continue;
       }
 
@@ -235,7 +244,6 @@ export async function runWeeklyAutoDispatch(
             entry.error =
               insertErr?.message ?? "Falha ao criar relatorio automatico";
             failed += 1;
-            entries.push(entry);
             continue;
           }
           report = inserted;
@@ -258,7 +266,34 @@ export async function runWeeklyAutoDispatch(
       });
 
       if (dryRun) {
-        entries.push(entry);
+        continue;
+      }
+
+      // IDEMPOTENCIA: se este relatorio ja tem disparo pendente ou enviado, nao
+      // enfileira de novo. Sem isso, cada gatilho extra (Vercel Cron + pg_cron,
+      // retry, chamada manual) criava uma copia do disparo e o cliente recebia
+      // o mesmo relatorio duas vezes.
+      const { data: existingDispatch, error: existingDispatchErr } =
+        await supabase
+          .from("report_dispatches")
+          .select("id, status")
+          .eq("report_id", report.id)
+          .eq("channel", "whatsapp")
+          .in("status", ["pending", "sent"])
+          .limit(1)
+          .maybeSingle();
+
+      if (existingDispatchErr) {
+        entry.error = existingDispatchErr.message;
+        failed += 1;
+        continue;
+      }
+
+      if (existingDispatch) {
+        entry.action = "already_queued";
+        entry.dispatchId = existingDispatch.id;
+        entry.reason = `Disparo ja existente (status ${existingDispatch.status}); nao duplicado`;
+        alreadyQueued += 1;
         continue;
       }
 
@@ -275,14 +310,12 @@ export async function runWeeklyAutoDispatch(
       if (enqueueErr || !dispatchId) {
         entry.error = enqueueErr?.message ?? "Falha ao enfileirar disparo";
         failed += 1;
-        entries.push(entry);
         continue;
       }
       entry.dispatchId = dispatchId;
 
-      // Modo geracao (17h): so enfileira; quem envia e o cron das 18h.
+      // Modo geracao (13h): so enfileira; quem envia e o cron do envio.
       if (enqueueOnly) {
-        entries.push(entry);
         continue;
       }
 
@@ -293,7 +326,6 @@ export async function runWeeklyAutoDispatch(
         });
         entry.error = "UazAPI nao configurada";
         failed += 1;
-        entries.push(entry);
         continue;
       }
 
@@ -334,12 +366,15 @@ export async function runWeeklyAutoDispatch(
     period,
     dryRun,
     totalClients: clients.length,
+    // alreadyQueued e subconjunto de created/reused (o relatorio existe; so o
+    // disparo nao foi duplicado), por isso nao entra nesta soma.
     eligibleClients: created + reused + failed,
     created,
     reused,
     sent,
     skippedNoWhatsapp,
     skippedDisabled,
+    alreadyQueued,
     failed,
     entries,
   };
