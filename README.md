@@ -98,18 +98,25 @@ A skill `auto_weekly_reports` está implementada e ativa em produção. Toda sex
 ```
 src/lib/auto-weekly.ts                    # logica central (computeWeeklyPeriod + runWeeklyAutoDispatch)
 src/app/api/cron/weekly-reports/route.ts  # endpoint protegido por CRON_SECRET
-vercel.json                               # cron Vercel: 45 20 * * 5 (UTC = 17:45 BRT)
-supabase/migracoes (pg_cron)              # job 'auto_weekly_reports_friday_1745_brt' (fallback)
+src/app/api/cron/whatsapp-dispatch/route.ts # drena a fila (envio de fato)
+vercel.json                               # cron Vercel: geração 0 16 * * 5 / envio 30 18 * * 5 (UTC)
+scripts/sql/2026-08-05-fix-disparos-duplicados.sql # correção da duplicidade
 ```
 
-### Dois gatilhos rodando em paralelo (redundância)
+### Um gatilho por etapa — nunca dois
 
-| Gatilho | Onde | Cronograma | Endpoint |
+| Etapa | Gatilho | Cronograma | Endpoint |
 | --- | --- | --- | --- |
-| **Primário** | Vercel Cron | `45 20 * * 5` (UTC) | `/api/cron/weekly-reports` (autenticado via header `Authorization: Bearer $CRON_SECRET`) |
-| **Fallback** | pg_cron (Supabase) | `45 20 * * 5` (UTC) | mesmo endpoint, autenticado via `app.cron_secret` em `current_setting` |
+| Geração (enfileira) | Vercel Cron | `0 16 * * 5` (UTC = 13h BRT) | `/api/cron/weekly-reports` |
+| Envio (drena a fila) | Vercel Cron | `30 18 * * 5` (UTC = 15:30 BRT) | `/api/cron/whatsapp-dispatch` |
 
-> O endpoint é idempotente: se o Vercel Cron já tiver publicado os relatórios da semana, o segundo disparo encontrará tudo como `reused` e simplesmente reenviará o WhatsApp **só se** ainda não houver dispatch desse relatório. Para evitar duplicidade, configure o pg_cron apenas como contingência (basta desativar: `select cron.unschedule('auto_weekly_reports_friday_1745_brt');`).
+> **Nunca deixe dois gatilhos apontando para o mesmo endpoint.** Foi exatamente isso que causou os relatórios duplicados entre junho e agosto de 2026: o job de pg_cron `auto_weekly_reports_friday_1745_brt` (`45 20 * * 5`) continuou ativo depois que o horário do Vercel Cron mudou, e as duas execuções semanais enfileiravam o mesmo relatório duas vezes. No plano Hobby o Vercel Cron dispara em **qualquer minuto da hora agendada** (observado 16:47 e 16:55), enquanto o pg_cron é exato — por isso os dois lotes apareciam em horários "quebrados" diferentes.
+>
+> Desde então há duas travas contra duplicidade:
+> 1. `runWeeklyAutoDispatch` não enfileira se já existir disparo `pending` ou `sent` daquele relatório (`action: "already_queued"`).
+> 2. Índice único parcial `report_dispatches_unico_pendente` em `(report_id, channel) where status = 'pending'`.
+>
+> E contra fila represada: `/api/cron/whatsapp-dispatch` **cancela** (não envia) qualquer disparo com mais de 48h de fila — ajustável via `?maxAgeHours=`.
 
 ### Setup uma vez no Supabase (para o pg_cron funcionar com segredo)
 
