@@ -8,7 +8,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { NewClientForm } from "./new-client-form";
 
 export default function NewClientPage() {
   return (
@@ -21,14 +20,17 @@ export default function NewClientPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Novo cliente</CardTitle>
+          <CardTitle>Cadastro desativado aqui</CardTitle>
           <CardDescription>
-            Cadastre o cliente para já vinculá-lo aos relatórios. Você pode
-            editar dados completos no módulo principal da JG depois.
+            O cadastro de clientes agora acontece em um lugar só: a aba
+            Clientes do sistema interno da JG. Assim que o cliente for
+            cadastrado lá, ele aparece nesta lista automaticamente.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <NewClientForm />
+        <CardContent className="text-sm text-muted-foreground">
+          Antes, cadastrar por aqui criava um registro paralelo sem verificar
+          se a empresa já existia — foi assim que XP Imóveis e PL Soluções
+          Financeiras acabaram duplicadas.
         </CardContent>
       </Card>
     </div>

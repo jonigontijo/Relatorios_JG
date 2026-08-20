@@ -2,58 +2,25 @@
 
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import {
-  clientCreateSchema,
-  clientEditSchema,
-  type ClientEditValues,
-} from "@/lib/client-schema";
+import { clientEditSchema, type ClientEditValues } from "@/lib/client-schema";
 
 export type CreateClientResult =
   | { ok: true; id: string }
   | { ok: false; error: string };
 
 export async function createClientAction(
-  raw: unknown,
+  _raw: unknown,
 ): Promise<CreateClientResult> {
-  const parsed = clientCreateSchema.safeParse(raw);
-  if (!parsed.success) {
-    return {
-      ok: false,
-      error:
-        parsed.error.issues
-          .map((i) => `${i.path.join(".")}: ${i.message}`)
-          .join("; ") || "Dados inválidos",
-    };
-  }
-  const supabase = createSupabaseServerClient();
-  const adsId = (parsed.data.meta_ads_account_id ?? "").trim();
-  const googleAdsId = (parsed.data.google_ads_account_id ?? "").trim();
-
-  const whatsapp = (parsed.data.whatsapp ?? "").trim();
-
-  const { data: id, error } = await supabase.rpc("create_report_client", {
-    p_name: parsed.data.name,
-    p_company: parsed.data.company,
-    p_meta_ads_account_id: adsId || undefined,
-    p_whatsapp: whatsapp || undefined,
-  });
-
-  if (error || !id) {
-    return { ok: false, error: error?.message ?? "Falha ao criar cliente" };
-  }
-
-  if (googleAdsId) {
-    const { error: gErr } = await supabase.rpc("set_client_google_ads_id", {
-      p_id: id,
-      p_google_ads_account_id: googleAdsId,
-    });
-    if (gErr) return { ok: false, error: gErr.message };
-  }
-
-  revalidatePath("/admin/relatorios");
-  revalidatePath("/admin/clientes");
-  revalidatePath("/admin/relatorios/novo");
-  return { ok: true, id };
+  // Cadastro de cliente foi centralizado na aba Clientes do sistema interno.
+  // Esta rota criava um registro paralelo em public.clients sem checar
+  // duplicidade — foi a origem dos cadastros repetidos de XP IMOVEIS e
+  // PL SOLUCOES FINANCEIRAS. A funcao create_report_client tambem foi
+  // revogada no banco, entao isto aqui e apenas a mensagem amigavel.
+  return {
+    ok: false,
+    error:
+      "Cadastro de cliente desativado neste app. Cadastre o cliente na aba Clientes do sistema interno da JG; ele aparece aqui automaticamente.",
+  };
 }
 
 function buildUrlsJson(v: ClientEditValues): Record<string, string> {
